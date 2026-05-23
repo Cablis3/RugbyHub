@@ -1,11 +1,25 @@
 import { Match } from '../types';
 
+interface RoundRobinOptions {
+  phaseId?: string;
+  groupId?: string;
+}
+
 /**
- * Algoritmus rotace: fixuje první tým, rotuje ostatní.
- * Pro n týmů generuje n*(n-1)/2 zápasů ve správných kolech.
- * Lichý počet týmů → přidá "bye" slot, zápasy s bye se přeskočí.
+ * Generuje zápasy systémem každý s každým.
+ * Algoritmus rotace: první tým je fixní, ostatní se rotují.
+ * Lichý počet týmů → přidá "__bye__" slot (zápasy s ním se přeskočí).
+ *
+ * @param tournamentId  ID turnaje
+ * @param teamIds       ID týmů ve skupině / turnaji
+ * @param options       Volitelné phaseId a groupId pro skupinové turnaje
  */
-export function generateRoundRobin(tournamentId: string, teamIds: string[]): Match[] {
+export function generateRoundRobin(
+  tournamentId: string,
+  teamIds: string[],
+  options: RoundRobinOptions = {},
+): Match[] {
+  const { phaseId, groupId } = options;
   const matches: Match[] = [];
   const teams = [...teamIds];
 
@@ -13,9 +27,11 @@ export function generateRoundRobin(tournamentId: string, teamIds: string[]): Mat
     teams.push('__bye__');
   }
 
-  const total = teams.length;
-  const rounds = total - 1;
+  const total    = teams.length;
+  const rounds   = total - 1;
   const perRound = total / 2;
+  // Prefix pro unikátní ID — skupinové turnaje používají groupId
+  const prefix   = groupId ?? tournamentId;
   let matchIndex = 0;
 
   for (let round = 0; round < rounds; round++) {
@@ -25,14 +41,16 @@ export function generateRoundRobin(tournamentId: string, teamIds: string[]): Mat
 
       if (home !== '__bye__' && away !== '__bye__') {
         matches.push({
-          id: `${tournamentId}-m${matchIndex++}`,
+          id:           `${prefix}-m${matchIndex++}`,
           tournamentId,
-          homeTeamId: home,
-          awayTeamId: away,
-          homeScore: null,
-          awayScore: null,
-          round: round + 1,
-          played: false,
+          homeTeamId:   home,
+          awayTeamId:   away,
+          homeScore:    null,
+          awayScore:    null,
+          round:        round + 1,
+          played:       false,
+          phaseId,
+          groupId,
         });
       }
     }

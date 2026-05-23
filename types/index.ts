@@ -24,6 +24,30 @@ export type Team = {
   clubId?: string;
 };
 
+/** Fáze turnaje — Group Phase, Cup, Plate, Playoff … */
+export type Phase = {
+  id: string;
+  tournamentId: string;
+  name: string;
+  orderIndex: number;
+};
+
+/** Skupina v rámci fáze — Skupina A, Cup SF1 … */
+export type Group = {
+  id: string;
+  tournamentId: string;
+  phaseId: string;
+  name: string;
+  orderIndex: number;
+};
+
+/** Vazba tým ↔ skupina (tým může být v různých skupinách různých fází) */
+export type GroupTeam = {
+  id: string;
+  groupId: string;
+  teamId: string;
+};
+
 export type Match = {
   id: string;
   tournamentId: string;
@@ -33,6 +57,10 @@ export type Match = {
   awayScore: number | null;
   round: number;
   played: boolean;
+  /** ID fáze — null pro turnaje bez skupinové struktury */
+  phaseId?: string;
+  /** ID skupiny — null pro turnaje bez skupinové struktury */
+  groupId?: string;
 };
 
 export type StandingRow = {
