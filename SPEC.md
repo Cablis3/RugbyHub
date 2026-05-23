@@ -1,4 +1,4 @@
-# Mini Tournify — Technické zadání
+# RugbyHub — Technické zadání
 
 > Rugby turnajová aplikace pro ČR · MVP · Next.js + Tailwind + Supabase
 
@@ -7,7 +7,7 @@
 ## 1. Popis aplikace
 
 ### Co aplikace dělá
-Mini Tournify umožňuje organizátorům rugby turnajů v ČR rychle vytvořit turnaj, přidat týmy z databáze českých rugby klubů a automaticky vygenerovat rozpis zápasů systémem „každý s každým". Po odehrání zápasů organizátor zadá výsledky a aplikace průběžně počítá a zobrazuje tabulku s pořadím.
+RugbyHub umožňuje organizátorům rugby turnajů v ČR rychle vytvořit turnaj, přidat týmy z databáze českých rugby klubů a automaticky vygenerovat rozpis zápasů systémem „každý s každým". Po odehrání zápasů organizátor zadá výsledky a aplikace průběžně počítá a zobrazuje tabulku s pořadím.
 
 ### Pro koho
 - Organizátoři jednorázových rugby turnajů (kategorie seniors, junioři, mini rugby)
@@ -46,7 +46,7 @@ Mini Tournify umožňuje organizátorům rugby turnajů v ČR rychle vytvořit t
 ## 3. Obrazovky aplikace
 
 ### `/` — Homepage / Seznam turnajů
-- Nadpis „Mini Tournify"
+- Nadpis „RugbyHub"
 - Tlačítko „+ Nový turnaj" → inline formulář
 - Formulář: název, datum, místo konání
 - Seznam existujících turnajů (karta s názvem, datem, stavem)
@@ -223,7 +223,7 @@ Pro každý tým iteruje přes všechny odehrané zápasy a akumuluje:
 ## 7. Struktura projektu
 
 ```
-Mini-tournify/
+RugbyHub/
 ├── app/                          # Next.js App Router
 │   ├── layout.tsx                # Root layout (header, body)
 │   ├── globals.css               # Tailwind direktivy
@@ -307,7 +307,7 @@ Otevři terminál (PowerShell nebo Windows Terminal) a spusť:
 
 ```bash
 cd C:\Users\m.cabla
-npx create-next-app@latest Mini-tournify --typescript --tailwind --app --src-dir=false --import-alias="@/*" --use-npm
+npx create-next-app@latest RugbyHub --typescript --tailwind --app --src-dir=false --import-alias="@/*" --use-npm
 ```
 
 > Přepíše existující soubory — **zkopíruj si je nejdříve** nebo odpovídej `No` na konflikty a kopíruj manuálně.
@@ -317,13 +317,13 @@ Nebo — pokud chceš zachovat soubory beze změny — spusť v novém adresář
 ```bash
 cd C:\Users\m.cabla
 npx create-next-app@latest mt-setup --typescript --tailwind --app --src-dir=false --import-alias="@/*" --use-npm
-# Pak zkopíruj obsah Mini-tournify do mt-setup a přejmenuj
+# Pak zkopíruj obsah RugbyHub do mt-setup a přejmenuj
 ```
 
 ### Krok 2 — Otevři ve VS Code
 
 ```bash
-cd Mini-tournify
+cd RugbyHub
 code .
 ```
 
@@ -411,7 +411,7 @@ Otevři prohlížeč na `http://localhost:3000`
 ---
 
 ### Fáze 4 — Veřejný odkaz a sdílení
-- Hezká URL: `mini-tournify.cz/t/[slug]`
+- Hezká URL: `rugbyhub.cz/t/[slug]`
 - Open Graph meta tagy (náhled při sdílení na WhatsApp, FB)
 - QR kód pro tisk a vystavení na místě konání
 - Real-time aktualizace tabulky (Supabase Realtime)

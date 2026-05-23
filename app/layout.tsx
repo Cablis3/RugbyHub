@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin', 'latin-ext'] });
 
 export const metadata: Metadata = {
-  title: 'Mini Tournify',
+  title: 'RugbyHub',
   description: 'Turnajová aplikace pro rugby v ČR',
 };
 
@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <line x1="0.5" y1="7" x2="13.5" y2="7" stroke="white" strokeWidth="1.5"/>
                 </svg>
               </div>
-              <span className="text-white font-bold text-base tracking-tight">Mini Tournify</span>
+              <span className="text-white font-bold text-base tracking-tight">RugbyHub</span>
             </a>
             <span className="text-xs bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-1 rounded-full font-medium">
               Rugby CZ

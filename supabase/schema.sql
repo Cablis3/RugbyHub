@@ -1,5 +1,5 @@
 -- ============================================================
--- Mini Tournify — Supabase schema (verze 2)
+-- RugbyHub — Supabase schema (verze 2)
 -- Spusť v: Supabase Dashboard → SQL Editor
 -- ============================================================
 -- ID generuje aplikace (text), ne databáze.

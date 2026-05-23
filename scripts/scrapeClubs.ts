@@ -15,7 +15,7 @@ const BASE_URL = 'https://www.rugbyunion.cz';
 
 async function fetchHtml(url: string): Promise<string> {
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mini-Tournify-Bot/1.0 (rugby club data collector)' },
+    headers: { 'User-Agent': 'RugbyHub-Bot/1.0 (rugby club data collector)' },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return res.text();
