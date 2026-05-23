@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Tournament } from '../types';
-import { generateId, getTournaments, saveTournament } from '../lib/storage';
+import { getTournaments, saveTournament } from '../lib/db';
+import { generateId } from '../lib/storage';
 
 const STATUS_LABEL: Record<Tournament['status'], string> = {
   draft:    'Příprava',
@@ -19,21 +20,38 @@ const STATUS_CLASS: Record<Tournament['status'], string> = {
 
 export default function HomePage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [loadErr, setLoadErr]   = useState('');
   const [showForm, setShowForm] = useState(false);
   const [name, setName]         = useState('');
   const [date, setDate]         = useState('');
   const [location, setLocation] = useState('');
-  const [error, setError]       = useState('');
+  const [saving, setSaving]     = useState(false);
+  const [formErr, setFormErr]   = useState('');
 
+  // ── načtení turnajů ──────────────────────────────────────────
   useEffect(() => {
-    setTournaments(getTournaments());
+    let cancelled = false;
+    setLoading(true);
+    setLoadErr('');
+
+    getTournaments()
+      .then(data => { if (!cancelled) setTournaments(data); })
+      .catch(err  => { if (!cancelled) setLoadErr(err.message ?? 'Chyba načítání.'); })
+      .finally(()  => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
   }, []);
 
-  const handleCreate = () => {
+  // ── vytvoření turnaje ─────────────────────────────────────────
+  const handleCreate = async () => {
     if (!name.trim() || !date || !location.trim()) {
-      setError('Vyplň prosím všechna pole.');
+      setFormErr('Vyplň prosím všechna pole.');
       return;
     }
+    setSaving(true);
+    setFormErr('');
+
     const t: Tournament = {
       id:        generateId(),
       name:      name.trim(),
@@ -42,10 +60,17 @@ export default function HomePage() {
       status:    'draft',
       createdAt: new Date().toISOString(),
     };
-    saveTournament(t);
-    setTournaments(prev => [...prev, t]);
-    setName(''); setDate(''); setLocation(''); setError('');
-    setShowForm(false);
+
+    try {
+      await saveTournament(t);
+      setTournaments(prev => [t, ...prev]);
+      setName(''); setDate(''); setLocation('');
+      setShowForm(false);
+    } catch (err: unknown) {
+      setFormErr(err instanceof Error ? err.message : 'Nepodařilo se uložit turnaj.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -108,21 +133,23 @@ export default function HomePage() {
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3.5 py-3 text-base text-white placeholder-gray-600 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/30 transition-colors"
                 />
               </div>
-              {error && (
+              {formErr && (
                 <p className="text-red-400 text-sm flex items-center gap-1.5">
-                  <span>⚠</span> {error}
+                  <span aria-hidden>⚠</span> {formErr}
                 </p>
               )}
             </div>
             <div className="flex flex-col sm:flex-row gap-2 mt-5">
               <button
                 onClick={handleCreate}
-                className="flex-1 sm:flex-none bg-green-600 hover:bg-green-500 active:bg-green-700 text-white px-5 py-3 rounded-lg text-sm font-semibold transition-colors min-h-[44px]"
+                disabled={saving}
+                className="flex-1 sm:flex-none bg-green-600 hover:bg-green-500 active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-lg text-sm font-semibold transition-colors min-h-[44px]"
               >
-                Vytvořit turnaj
+                {saving ? 'Ukládám…' : 'Vytvořit turnaj'}
               </button>
               <button
-                onClick={() => { setShowForm(false); setError(''); }}
+                onClick={() => { setShowForm(false); setFormErr(''); }}
+                disabled={saving}
                 className="flex-1 sm:flex-none px-5 py-3 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors min-h-[44px]"
               >
                 Zrušit
@@ -131,8 +158,27 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* Stavy načítání / chyba */}
+        {loading && (
+          <div className="space-y-2.5">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-[72px] bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        )}
+
+        {!loading && loadErr && (
+          <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3.5">
+            <span className="text-red-400 mt-0.5" aria-hidden>⚠</span>
+            <div>
+              <p className="text-red-400 font-medium text-sm">Nepodařilo se načíst turnaje</p>
+              <p className="text-red-400/70 text-xs mt-0.5">{loadErr}</p>
+            </div>
+          </div>
+        )}
+
         {/* Seznam turnajů */}
-        {tournaments.length === 0 ? (
+        {!loading && !loadErr && tournaments.length === 0 && (
           <div className="text-center py-20 px-4">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 mb-5">
               <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -147,13 +193,15 @@ export default function HomePage() {
               Klikni na „+ Nový turnaj" a založ první turnaj.
             </p>
           </div>
-        ) : (
+        )}
+
+        {!loading && !loadErr && tournaments.length > 0 && (
           <div className="space-y-2.5">
-            {[...tournaments].reverse().map(t => (
+            {tournaments.map(t => (
               <Link
                 key={t.id}
                 href={`/tournaments/${t.id}`}
-                className="group flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 hover:border-green-600/60 hover:bg-gray-900 transition-all duration-150 min-h-[72px]"
+                className="group flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 hover:border-green-600/60 transition-all duration-150 min-h-[72px]"
               >
                 <div className="min-w-0 flex-1 mr-3">
                   <p className="font-bold text-white group-hover:text-green-400 transition-colors leading-snug truncate">
@@ -178,6 +226,7 @@ export default function HomePage() {
             ))}
           </div>
         )}
+
       </div>
     </main>
   );

@@ -4,13 +4,13 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Match, Team, Tournament } from '../../../types';
 import {
-  getMatchesForTournament,
-  getTeamsForTournament,
   getTournamentById,
-  saveMatches,
-  saveTeams,
+  getTeamsForTournament,
+  getMatchesForTournament,
+  replaceTeams,
+  replaceMatches,
   updateMatch,
-} from '../../../lib/storage';
+} from '../../../lib/db';
 import { generateRoundRobin } from '../../../lib/generateRoundRobin';
 import { calculateStandings } from '../../../lib/calculateStandings';
 import { TournamentTable } from '../../../components/TournamentTable';
@@ -21,58 +21,134 @@ type Tab = 'table' | 'matches' | 'teams';
 
 export default function TournamentDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [teams,   setTeams]   = useState<Team[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [tab, setTab]         = useState<Tab>('table');
-  const [loaded, setLoaded]   = useState(false);
 
+  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [teams,      setTeams]      = useState<Team[]>([]);
+  const [matches,    setMatches]    = useState<Match[]>([]);
+  const [tab,        setTab]        = useState<Tab>('table');
+
+  const [loading,    setLoading]    = useState(true);
+  const [loadErr,    setLoadErr]    = useState('');
+  const [actionErr,  setActionErr]  = useState('');
+
+  // ── načtení dat turnaje ────────────────────────────────────
   useEffect(() => {
-    setTournament(getTournamentById(id) ?? null);
-    setTeams(getTeamsForTournament(id));
-    setMatches(getMatchesForTournament(id));
-    setLoaded(true);
+    let cancelled = false;
+    setLoading(true);
+    setLoadErr('');
+
+    Promise.all([
+      getTournamentById(id),
+      getTeamsForTournament(id),
+      getMatchesForTournament(id),
+    ])
+      .then(([t, te, ma]) => {
+        if (cancelled) return;
+        setTournament(t);
+        setTeams(te);
+        setMatches(ma);
+      })
+      .catch(err => {
+        if (!cancelled) setLoadErr(err.message ?? 'Chyba načítání.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, [id]);
 
-  const handleTeamsSave = (newTeams: Team[]) => {
-    saveTeams(newTeams);
-    setTeams(newTeams);
-    saveMatches([]);
-    setMatches([]);
+  // ── uložení týmů ───────────────────────────────────────────
+  const handleTeamsSave = async (newTeams: Team[]) => {
+    setActionErr('');
+    try {
+      await replaceTeams(id, newTeams);
+      setTeams(newTeams);
+      // Změna týmů invaliduje celý rozpis zápasů
+      await replaceMatches(id, []);
+      setMatches([]);
+    } catch (err: unknown) {
+      setActionErr(err instanceof Error ? err.message : 'Nepodařilo se uložit týmy.');
+    }
   };
 
-  const handleGenerateMatches = () => {
+  // ── generování zápasů ──────────────────────────────────────
+  const handleGenerateMatches = async () => {
     if (teams.length < 2) return;
+    setActionErr('');
     const generated = generateRoundRobin(id, teams.map(t => t.id));
-    saveMatches(generated);
-    setMatches(generated);
+    try {
+      await replaceMatches(id, generated);
+      setMatches(generated);
+    } catch (err: unknown) {
+      setActionErr(err instanceof Error ? err.message : 'Nepodařilo se vygenerovat zápasy.');
+    }
   };
 
-  const handleResultSubmit = (matchId: string, homeScore: number, awayScore: number) => {
+  // ── zadání výsledku ────────────────────────────────────────
+  const handleResultSubmit = async (matchId: string, homeScore: number, awayScore: number) => {
     const match = matches.find(m => m.id === matchId);
     if (!match) return;
+    setActionErr('');
+
     const updated: Match = { ...match, homeScore, awayScore, played: true };
-    updateMatch(updated);
+
+    // Optimistická aktualizace UI
     setMatches(prev => prev.map(m => m.id === matchId ? updated : m));
+
+    try {
+      await updateMatch(updated);
+    } catch (err: unknown) {
+      // Rollback při chybě
+      setMatches(prev => prev.map(m => m.id === matchId ? match : m));
+      setActionErr(err instanceof Error ? err.message : 'Nepodařilo se uložit výsledek.');
+    }
   };
 
-  if (!loaded) return null;
-
-  if (!tournament) {
+  // ── render: načítání ───────────────────────────────────────
+  if (loading) {
     return (
       <main className="min-h-screen bg-gray-950">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-          <a href="/" className="text-sm text-green-400 hover:text-green-300 transition-colors">
-            ← Zpět
-          </a>
-          <p className="mt-4 text-gray-500">Turnaj nenalezen.</p>
+          <div className="h-4 w-32 bg-gray-800 rounded animate-pulse mb-6" />
+          <div className="h-8 w-64 bg-gray-800 rounded animate-pulse mb-2" />
+          <div className="h-4 w-48 bg-gray-800 rounded animate-pulse mb-8" />
+          <div className="flex gap-4 border-b border-gray-800 mb-6">
+            {[1, 2, 3].map(i => <div key={i} className="h-8 w-20 bg-gray-800 rounded animate-pulse" />)}
+          </div>
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />)}
+          </div>
         </div>
       </main>
     );
   }
 
-  const standings = calculateStandings(teams, matches);
-  const totalMatches  = matches.length;
+  // ── render: nenalezen ─────────────────────────────────────
+  if (loadErr || !tournament) {
+    return (
+      <main className="min-h-screen bg-gray-950">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+          <a href="/" className="inline-flex items-center gap-1.5 text-sm text-green-400 hover:text-green-300 transition-colors mb-5">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Zpět na turnaje
+          </a>
+          <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3.5 mt-4">
+            <span className="text-red-400 mt-0.5" aria-hidden>⚠</span>
+            <div>
+              <p className="text-red-400 font-medium text-sm">
+                {loadErr ? 'Chyba načítání' : 'Turnaj nenalezen'}
+              </p>
+              {loadErr && <p className="text-red-400/70 text-xs mt-0.5">{loadErr}</p>}
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const standings    = calculateStandings(teams, matches);
+  const totalMatches = matches.length;
   const playedMatches = matches.filter(m => m.played).length;
 
   const tabs: { key: Tab; label: string }[] = [
@@ -84,8 +160,9 @@ export default function TournamentDetailPage() {
   return (
     <main className="min-h-screen bg-gray-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+
         <a href="/" className="inline-flex items-center gap-1.5 text-sm text-green-400 hover:text-green-300 transition-colors mb-5">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           Zpět na turnaje
@@ -95,6 +172,18 @@ export default function TournamentDetailPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{tournament.name}</h1>
           <p className="text-gray-500 text-sm mt-1.5">{tournament.date}&nbsp;·&nbsp;{tournament.location}</p>
         </div>
+
+        {/* Chybová zpráva akcí */}
+        {actionErr && (
+          <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
+            <span className="text-red-400 shrink-0" aria-hidden>⚠</span>
+            <p className="text-red-400 text-sm">{actionErr}</p>
+            <button
+              onClick={() => setActionErr('')}
+              className="ml-auto text-red-400/60 hover:text-red-400 text-lg leading-none"
+            >×</button>
+          </div>
+        )}
 
         {/* Tab navigace */}
         <div className="flex gap-0 border-b border-gray-800 mb-6 overflow-x-auto">
@@ -126,31 +215,29 @@ export default function TournamentDetailPage() {
 
         {/* Zápasy */}
         {tab === 'matches' && (
-          <div>
-            {matches.length === 0 ? (
-              teams.length < 2 ? (
-                <p className="text-sm text-gray-500">Přidej alespoň 2 týmy v záložce „Týmy".</p>
-              ) : (
-                <div className="text-center py-10 bg-gray-900 border border-gray-800 rounded-xl">
-                  <p className="text-white font-semibold mb-1">
-                    {teams.length} týmů → {(teams.length * (teams.length - 1)) / 2} zápasů
-                  </p>
-                  <p className="text-sm text-gray-500 mb-5">
-                    Systém každý s každým,&nbsp;
-                    {teams.length % 2 === 0 ? teams.length - 1 : teams.length} kol
-                  </p>
-                  <button
-                    onClick={handleGenerateMatches}
-                    className="bg-green-600 hover:bg-green-500 active:bg-green-700 text-white px-6 py-2.5 rounded-lg font-semibold text-sm transition-colors min-h-[44px]"
-                  >
-                    Vygenerovat rozpis zápasů
-                  </button>
-                </div>
-              )
+          matches.length === 0 ? (
+            teams.length < 2 ? (
+              <p className="text-sm text-gray-500">Přidej alespoň 2 týmy v záložce „Týmy".</p>
             ) : (
-              <MatchList matches={matches} teams={teams} onResultSubmit={handleResultSubmit} />
-            )}
-          </div>
+              <div className="text-center py-10 bg-gray-900 border border-gray-800 rounded-xl">
+                <p className="text-white font-semibold mb-1">
+                  {teams.length} týmů → {(teams.length * (teams.length - 1)) / 2} zápasů
+                </p>
+                <p className="text-sm text-gray-500 mb-5">
+                  Systém každý s každým,&nbsp;
+                  {teams.length % 2 === 0 ? teams.length - 1 : teams.length} kol
+                </p>
+                <button
+                  onClick={handleGenerateMatches}
+                  className="bg-green-600 hover:bg-green-500 active:bg-green-700 text-white px-6 py-2.5 rounded-lg font-semibold text-sm transition-colors min-h-[44px]"
+                >
+                  Vygenerovat rozpis zápasů
+                </button>
+              </div>
+            )
+          ) : (
+            <MatchList matches={matches} teams={teams} onResultSubmit={handleResultSubmit} />
+          )
         )}
 
         {/* Týmy */}
@@ -161,6 +248,7 @@ export default function TournamentDetailPage() {
             onSave={handleTeamsSave}
           />
         )}
+
       </div>
     </main>
   );
