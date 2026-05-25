@@ -23,11 +23,13 @@ import { generateRoundRobin } from '../../../lib/generateRoundRobin';
 import { generateId } from '../../../lib/storage';
 import { GroupCard } from '../../../components/GroupCard';
 import { TeamSelector } from '../../../components/TeamSelector';
+import { useRole } from '../../../components/AppShell';
 
 // ─────────────────────────────────────────────────────────────
 
 export default function TournamentDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { isAdmin } = useRole();
 
   // ── Data ─────────────────────────────────────────────────────
   const [tournament, setTournament]   = useState<Tournament | null>(null);
@@ -285,21 +287,23 @@ export default function TournamentDetailPage() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{tournament.name}</h1>
             <p className="text-gray-500 text-sm mt-1.5">{tournament.date}&nbsp;·&nbsp;{tournament.location}</p>
           </div>
-          <button
-            onClick={() => { setShowAdmin(v => !v); setShowTeamMgr(false); }}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
-              showAdmin
-                ? 'bg-green-600/20 border-green-600/40 text-green-400'
-                : 'bg-gray-900 border-gray-700 text-gray-400 hover:text-white'
-            }`}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.9 2.9l1.4 1.4M9.7 9.7l1.4 1.4M2.9 11.1l1.4-1.4M9.7 4.3l1.4-1.4"
-                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            Správa
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => { setShowAdmin(v => !v); setShowTeamMgr(false); }}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                showAdmin
+                  ? 'bg-green-600/20 border-green-600/40 text-green-400'
+                  : 'bg-gray-900 border-gray-700 text-gray-400 hover:text-white'
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.9 2.9l1.4 1.4M9.7 9.7l1.4 1.4M2.9 11.1l1.4-1.4M9.7 4.3l1.4-1.4"
+                  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              Správa
+            </button>
+          )}
         </div>
 
         {/* Action error */}
@@ -311,8 +315,8 @@ export default function TournamentDetailPage() {
           </div>
         )}
 
-        {/* ── ADMIN PANEL ─────────────────────────────────────── */}
-        {showAdmin && (
+        {/* ── ADMIN PANEL (jen pro admina) ────────────────────── */}
+        {showAdmin && isAdmin && (
           <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5 mb-6 space-y-6">
             <h2 className="font-bold text-white flex items-center gap-2 text-sm uppercase tracking-widest">
               <div className="w-1 h-4 bg-green-500 rounded-full" /> Správa turnaje
@@ -552,6 +556,7 @@ export default function TournamentDetailPage() {
                         group={group}
                         teams={teamsForGroup(group.id)}
                         matches={matchesForGroup(group.id)}
+                        isAdmin={isAdmin}
                         onResultSubmit={handleResultSubmit}
                         onGenerateMatches={handleGenerateGroupMatches}
                         onClearMatches={handleClearGroupMatches}

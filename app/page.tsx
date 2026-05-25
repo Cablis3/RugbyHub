@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Tournament } from '../types';
 import { getTournaments, saveTournament } from '../lib/db';
 import { generateId } from '../lib/storage';
+import { useRole } from '../components/AppShell';
 
 const STATUS_LABEL: Record<Tournament['status'], string> = {
   draft:    'Příprava',
@@ -19,31 +20,29 @@ const STATUS_CLASS: Record<Tournament['status'], string> = {
 };
 
 export default function HomePage() {
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [loadErr, setLoadErr]   = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [name, setName]         = useState('');
-  const [date, setDate]         = useState('');
-  const [location, setLocation] = useState('');
-  const [saving, setSaving]     = useState(false);
-  const [formErr, setFormErr]   = useState('');
+  const { isAdmin } = useRole();
 
-  // ── načtení turnajů ──────────────────────────────────────────
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [loadErr,   setLoadErr]   = useState('');
+  const [showForm,  setShowForm]  = useState(false);
+  const [name,      setName]      = useState('');
+  const [date,      setDate]      = useState('');
+  const [location,  setLocation]  = useState('');
+  const [saving,    setSaving]    = useState(false);
+  const [formErr,   setFormErr]   = useState('');
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadErr('');
-
     getTournaments()
       .then(data => { if (!cancelled) setTournaments(data); })
       .catch(err  => { if (!cancelled) setLoadErr(err.message ?? 'Chyba načítání.'); })
       .finally(()  => { if (!cancelled) setLoading(false); });
-
     return () => { cancelled = true; };
   }, []);
 
-  // ── vytvoření turnaje ─────────────────────────────────────────
   const handleCreate = async () => {
     if (!name.trim() || !date || !location.trim()) {
       setFormErr('Vyplň prosím všechna pole.');
@@ -51,7 +50,6 @@ export default function HomePage() {
     }
     setSaving(true);
     setFormErr('');
-
     const t: Tournament = {
       id:        generateId(),
       name:      name.trim(),
@@ -60,7 +58,6 @@ export default function HomePage() {
       status:    'draft',
       createdAt: new Date().toISOString(),
     };
-
     try {
       await saveTournament(t);
       setTournaments(prev => [t, ...prev]);
@@ -83,23 +80,25 @@ export default function HomePage() {
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-none">
               Turnaje
             </h1>
-            <p className="text-gray-500 text-sm mt-2">
-              Rugby · ČR · Systém každý s každým
-            </p>
+            <p className="text-gray-500 text-sm mt-2">Rugby · ČR · Systém každý s každým</p>
           </div>
-          <button
-            onClick={() => setShowForm(v => !v)}
-            className="shrink-0 flex items-center gap-1.5 bg-green-600 hover:bg-green-500 active:bg-green-700 text-white px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors min-h-[44px]"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            Nový turnaj
-          </button>
+
+          {/* Tlačítko jen pro admina */}
+          {isAdmin && (
+            <button
+              onClick={() => setShowForm(v => !v)}
+              className="shrink-0 flex items-center gap-1.5 bg-green-600 hover:bg-green-500 active:bg-green-700 text-white px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors min-h-[44px]"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Nový turnaj
+            </button>
+          )}
         </div>
 
-        {/* Formulář nového turnaje */}
-        {showForm && (
+        {/* Formulář — jen pro admina */}
+        {isAdmin && showForm && (
           <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5 sm:p-6 mb-6 shadow-2xl">
             <div className="flex items-center gap-2 mb-5">
               <div className="w-1 h-5 bg-green-500 rounded-full" />
@@ -143,7 +142,7 @@ export default function HomePage() {
               <button
                 onClick={handleCreate}
                 disabled={saving}
-                className="flex-1 sm:flex-none bg-green-600 hover:bg-green-500 active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-lg text-sm font-semibold transition-colors min-h-[44px]"
+                className="flex-1 sm:flex-none bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-lg text-sm font-semibold transition-colors min-h-[44px]"
               >
                 {saving ? 'Ukládám…' : 'Vytvořit turnaj'}
               </button>
@@ -158,7 +157,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Stavy načítání / chyba */}
+        {/* Loading skeleton */}
         {loading && (
           <div className="space-y-2.5">
             {[1, 2, 3].map(i => (
@@ -167,6 +166,7 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* Chyba načítání */}
         {!loading && loadErr && (
           <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3.5">
             <span className="text-red-400 mt-0.5" aria-hidden>⚠</span>
@@ -177,11 +177,11 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Seznam turnajů */}
+        {/* Prázdný stav */}
         {!loading && !loadErr && tournaments.length === 0 && (
           <div className="text-center py-20 px-4">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 mb-5">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
                 <ellipse cx="14" cy="14" rx="8" ry="13" stroke="#4b5563" strokeWidth="2"/>
                 <line x1="1" y1="14" x2="27" y2="14" stroke="#4b5563" strokeWidth="2"/>
                 <line x1="4" y1="8" x2="24" y2="8" stroke="#4b5563" strokeWidth="1.5"/>
@@ -190,11 +190,14 @@ export default function HomePage() {
             </div>
             <p className="text-white font-bold text-lg">Žádné turnaje</p>
             <p className="text-gray-500 text-sm mt-1.5 max-w-xs mx-auto">
-              Klikni na „+ Nový turnaj" a založ první turnaj.
+              {isAdmin
+                ? 'Klikni na „+ Nový turnaj" a založ první turnaj.'
+                : 'Zatím nebyly vytvořeny žádné turnaje.'}
             </p>
           </div>
         )}
 
+        {/* Seznam turnajů */}
         {!loading && !loadErr && tournaments.length > 0 && (
           <div className="space-y-2.5">
             {tournaments.map(t => (
@@ -215,11 +218,10 @@ export default function HomePage() {
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap ${STATUS_CLASS[t.status]}`}>
                     {STATUS_LABEL[t.status]}
                   </span>
-                  <svg
-                    className="text-gray-600 group-hover:text-green-500 transition-colors"
-                    width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg className="text-gray-600 group-hover:text-green-500 transition-colors"
+                    width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75"
+                      strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
               </Link>
