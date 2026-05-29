@@ -175,7 +175,6 @@ export default function TournamentDetailPage() {
     await act(async () => {
       const result = await replaceGroupTeams(gid, groupTeamDraft);
       setGroupTeams(prev => [...prev.filter(gt => gt.groupId !== gid), ...result]);
-      // Smazat zápasy skupiny — týmy se změnily
       await replaceMatchesForGroup(gid, []);
       setMatches(prev => prev.filter(m => m.groupId !== gid));
       setAssigningGroupId(null);
@@ -236,16 +235,16 @@ export default function TournamentDetailPage() {
   // ── Loading ──────────────────────────────────────────────────
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-950">
+      <main className="min-h-screen bg-canvas">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-          <div className="h-4 w-28 bg-gray-800 rounded animate-pulse mb-6" />
-          <div className="h-8 w-64 bg-gray-800 rounded animate-pulse mb-2" />
-          <div className="h-4 w-48 bg-gray-800 rounded animate-pulse mb-8" />
+          <div className="h-4 w-28 bg-divider rounded animate-pulse mb-6" />
+          <div className="h-8 w-64 bg-divider rounded animate-pulse mb-2" />
+          <div className="h-4 w-48 bg-divider rounded animate-pulse mb-8" />
           <div className="flex gap-3 mb-6">
-            {[1, 2, 3].map(i => <div key={i} className="h-8 w-24 bg-gray-800 rounded-full animate-pulse" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-8 w-24 bg-divider rounded-full animate-pulse" />)}
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            {[1, 2].map(i => <div key={i} className="h-48 bg-gray-900 rounded-2xl animate-pulse" />)}
+            {[1, 2].map(i => <div key={i} className="h-48 bg-panel border border-divider rounded-2xl animate-pulse" />)}
           </div>
         </div>
       </main>
@@ -254,16 +253,16 @@ export default function TournamentDetailPage() {
 
   if (loadErr || !tournament) {
     return (
-      <main className="min-h-screen bg-gray-950">
+      <main className="min-h-screen bg-canvas">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-          <a href="/" className="inline-flex items-center gap-1.5 text-sm text-green-400 hover:text-green-300 mb-5">
+          <a href="/" className="inline-flex items-center gap-1.5 text-sm text-gold-dark hover:text-gold transition-colors mb-5">
             <BackIcon /> Zpět
           </a>
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3.5 mt-4">
-            <p className="text-red-400 font-medium text-sm">
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3.5 mt-4">
+            <p className="text-red-700 font-medium text-sm">
               {loadErr ? 'Chyba načítání' : 'Turnaj nenalezen'}
             </p>
-            {loadErr && <p className="text-red-400/70 text-xs mt-0.5">{loadErr}</p>}
+            {loadErr && <p className="text-red-500 text-xs mt-0.5">{loadErr}</p>}
           </div>
         </div>
       </main>
@@ -273,34 +272,30 @@ export default function TournamentDetailPage() {
   const selectedPhase = phases.find(p => p.id === selectedPhaseId);
 
   return (
-    <main className="min-h-screen bg-gray-950">
+    <main className="min-h-screen bg-canvas">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Zpět */}
-        <a href="/" className="inline-flex items-center gap-1.5 text-sm text-green-400 hover:text-green-300 transition-colors mb-5">
+        <a href="/" className="inline-flex items-center gap-1.5 text-sm text-gold-dark hover:text-gold transition-colors mb-5">
           <BackIcon /> Zpět na turnaje
         </a>
 
         {/* Hlavička turnaje */}
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{tournament.name}</h1>
-            <p className="text-gray-500 text-sm mt-1.5">{tournament.date}&nbsp;·&nbsp;{tournament.location}</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">{tournament.name}</h1>
+            <p className="text-secondary text-sm mt-1.5">{tournament.date}&nbsp;·&nbsp;{tournament.location}</p>
           </div>
           {isAdmin && (
             <button
               onClick={() => { setShowAdmin(v => !v); setShowTeamMgr(false); }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all border shadow-sm ${
                 showAdmin
-                  ? 'bg-green-600/20 border-green-600/40 text-green-400'
-                  : 'bg-gray-900 border-gray-700 text-gray-400 hover:text-white'
+                  ? 'bg-gold text-ink border-gold-dark'
+                  : 'bg-ink text-white border-ink hover:border-gold hover:text-gold'
               }`}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.9 2.9l1.4 1.4M9.7 9.7l1.4 1.4M2.9 11.1l1.4-1.4M9.7 4.3l1.4-1.4"
-                  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
+              <GearIcon active={showAdmin} />
               Správa
             </button>
           )}
@@ -308,27 +303,30 @@ export default function TournamentDetailPage() {
 
         {/* Action error */}
         {actionErr && (
-          <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-5">
-            <span className="text-red-400 shrink-0">⚠</span>
-            <p className="text-red-400 text-sm flex-1">{actionErr}</p>
-            <button onClick={() => setActionErr('')} className="text-red-400/60 hover:text-red-400 text-lg leading-none">×</button>
+          <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
+            <span className="text-red-500 shrink-0">⚠</span>
+            <p className="text-red-700 text-sm flex-1">{actionErr}</p>
+            <button onClick={() => setActionErr('')} className="text-red-400 hover:text-red-600 text-lg leading-none">×</button>
           </div>
         )}
 
-        {/* ── ADMIN PANEL (jen pro admina) ────────────────────── */}
+        {/* ── ADMIN PANEL ─────────────────────────────────────── */}
         {showAdmin && isAdmin && (
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5 mb-6 space-y-6">
+          <div className="bg-ink border border-ink-light/30 rounded-2xl p-5 mb-6 space-y-6 shadow-lg">
+
+            {/* Admin panel header */}
             <h2 className="font-bold text-white flex items-center gap-2 text-sm uppercase tracking-widest">
-              <div className="w-1 h-4 bg-green-500 rounded-full" /> Správa turnaje
+              <div className="w-1 h-4 bg-gold rounded-full" />
+              Správa turnaje
             </h2>
 
             {/* Týmy turnaje */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Týmy turnaje</p>
+                <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">Týmy turnaje</p>
                 <button
                   onClick={() => setShowTeamMgr(v => !v)}
-                  className="text-xs text-green-400 hover:text-green-300 transition-colors"
+                  className="text-xs text-gold hover:text-gold-dark transition-colors"
                 >
                   {showTeamMgr ? 'Zavřít' : `Spravovat (${teams.length})`}
                 </button>
@@ -336,17 +334,17 @@ export default function TournamentDetailPage() {
               {!showTeamMgr && teams.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {teams.map(t => (
-                    <span key={t.id} className="text-xs bg-gray-800 border border-gray-700 text-gray-300 px-2 py-1 rounded-full">
+                    <span key={t.id} className="text-xs bg-white/10 border border-white/15 text-white/80 px-2 py-1 rounded-full">
                       {t.name}
                     </span>
                   ))}
                 </div>
               )}
               {!showTeamMgr && teams.length === 0 && (
-                <p className="text-sm text-gray-500">Žádné týmy — přidej je pomocí „Spravovat".</p>
+                <p className="text-sm text-white/40">Žádné týmy — přidej je pomocí „Spravovat".</p>
               )}
               {showTeamMgr && (
-                <div className="mt-3 bg-gray-950 rounded-xl p-4 border border-gray-800">
+                <div className="mt-3 bg-white/5 rounded-xl p-4 border border-white/10">
                   <TeamSelector
                     tournamentId={id}
                     currentTeams={teams}
@@ -356,21 +354,21 @@ export default function TournamentDetailPage() {
               )}
             </div>
 
-            <div className="border-t border-gray-800" />
+            <div className="border-t border-white/10" />
 
             {/* Fáze a skupiny */}
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Fáze a skupiny</p>
+              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Fáze a skupiny</p>
 
               {phases.length === 0 && (
-                <p className="text-sm text-gray-500 mb-3">Žádné fáze — vytvoř první fázi.</p>
+                <p className="text-sm text-white/40 mb-3">Žádné fáze — vytvoř první fázi.</p>
               )}
 
               {phases.map(phase => (
-                <div key={phase.id} className="mb-4 bg-gray-950 border border-gray-800 rounded-xl overflow-hidden">
+                <div key={phase.id} className="mb-4 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                   {/* Hlavička fáze */}
-                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-800 bg-gray-800/30">
-                    <div className="w-1 h-4 bg-green-500/60 rounded-full" />
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10 bg-white/5">
+                    <div className="w-1 h-4 bg-gold/60 rounded-full" />
                     <span className="font-semibold text-white text-sm flex-1">{phase.name}</span>
                     <button
                       onClick={() => handleDeletePhase(phase.id)}
@@ -387,10 +385,10 @@ export default function TournamentDetailPage() {
                       const gTeams   = teams.filter(t => gTeamIds.includes(t.id));
                       const gMatches = matches.filter(m => m.groupId === group.id);
                       return (
-                        <div key={group.id} className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2.5 space-y-2">
+                        <div key={group.id} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 space-y-2">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-white flex-1">{group.name}</span>
-                            <span className="text-xs text-gray-500">{gTeams.length} týmů · {gMatches.length} zápasů</span>
+                            <span className="text-xs text-white/40">{gTeams.length} týmů · {gMatches.length} zápasů</span>
                             <button
                               onClick={() => handleDeleteGroup(group.id)}
                               className="text-xs text-red-400/60 hover:text-red-400 transition-colors"
@@ -404,7 +402,7 @@ export default function TournamentDetailPage() {
                             <div className="space-y-2">
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
                                 {teams.map(t => (
-                                  <label key={t.id} className="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
+                                  <label key={t.id} className="flex items-center gap-1.5 text-xs text-white/70 cursor-pointer">
                                     <input
                                       type="checkbox"
                                       checked={groupTeamDraft.includes(t.id)}
@@ -412,25 +410,25 @@ export default function TournamentDetailPage() {
                                         if (e.target.checked) setGroupTeamDraft(p => [...p, t.id]);
                                         else setGroupTeamDraft(p => p.filter(x => x !== t.id));
                                       }}
-                                      className="accent-green-500"
+                                      className="accent-gold"
                                     />
                                     <span className="truncate">{t.name}</span>
                                   </label>
                                 ))}
                               </div>
                               {teams.length === 0 && (
-                                <p className="text-xs text-gray-500">Nejprve přidej týmy do turnaje.</p>
+                                <p className="text-xs text-white/40">Nejprve přidej týmy do turnaje.</p>
                               )}
                               <div className="flex gap-2">
                                 <button
                                   onClick={handleSaveGroupTeams}
-                                  className="text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
+                                  className="text-xs bg-gold hover:bg-gold-dark text-ink px-3 py-1.5 rounded-lg font-semibold transition-colors"
                                 >
                                   Uložit přiřazení
                                 </button>
                                 <button
                                   onClick={() => setAssigningGroupId(null)}
-                                  className="text-xs text-gray-400 hover:text-white px-2 py-1.5 transition-colors"
+                                  className="text-xs text-white/50 hover:text-white px-2 py-1.5 transition-colors"
                                 >
                                   Zrušit
                                 </button>
@@ -440,15 +438,17 @@ export default function TournamentDetailPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <button
                                 onClick={() => openAssignTeams(group.id)}
-                                className="text-xs text-green-400 hover:text-green-300 transition-colors"
+                                className="text-xs text-gold hover:text-gold-dark transition-colors"
                               >
-                                {gTeams.length === 0 ? '+ Přiřadit týmy' : `Upravit týmy (${gTeams.map(t => t.name).join(', ').slice(0, 40)}…)`}
+                                {gTeams.length === 0
+                                  ? '+ Přiřadit týmy'
+                                  : `Upravit týmy (${gTeams.map(t => t.name).join(', ').slice(0, 40)}…)`}
                               </button>
                               {gTeamIds.length >= 2 && gMatches.length === 0 && (
                                 <button
                                   onClick={() => handleGenerateGroupMatches(group.id)}
                                   disabled={generatingGroupId === group.id}
-                                  className="text-xs bg-gray-800 border border-gray-700 hover:border-green-600 text-gray-300 hover:text-green-400 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+                                  className="text-xs bg-white/10 border border-white/15 hover:border-gold/50 text-white/70 hover:text-gold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
                                 >
                                   {generatingGroupId === group.id ? 'Generuji…' : '↻ Generovat zápasy'}
                                 </button>
@@ -466,12 +466,12 @@ export default function TournamentDetailPage() {
                         onChange={e => setNewGroupNames(p => ({ ...p, [phase.id]: e.target.value }))}
                         onKeyDown={e => e.key === 'Enter' && handleCreateGroup(phase.id)}
                         placeholder="Název skupiny (např. Skupina A)"
-                        className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500 transition-colors"
+                        className="flex-1 bg-white/10 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-gold transition-colors"
                       />
                       <button
                         onClick={() => handleCreateGroup(phase.id)}
                         disabled={!(newGroupNames[phase.id] ?? '').trim()}
-                        className="text-xs bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0"
+                        className="text-xs bg-gold hover:bg-gold-dark disabled:opacity-40 text-ink px-3 py-1.5 rounded-lg font-semibold transition-colors shrink-0"
                       >
                         + Skupina
                       </button>
@@ -487,12 +487,12 @@ export default function TournamentDetailPage() {
                   onChange={e => setNewPhaseName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleCreatePhase()}
                   placeholder="Název fáze (např. Group Phase)"
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500 transition-colors"
+                  className="flex-1 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm text-white placeholder-white/25 focus:outline-none focus:border-gold transition-colors"
                 />
                 <button
                   onClick={handleCreatePhase}
                   disabled={!newPhaseName.trim()}
-                  className="text-sm bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white px-4 py-2 rounded-lg font-semibold transition-colors shrink-0"
+                  className="text-sm bg-gold hover:bg-gold-dark disabled:opacity-40 text-ink px-4 py-2 rounded-xl font-semibold transition-colors shrink-0 shadow-sm"
                 >
                   + Fáze
                 </button>
@@ -504,16 +504,18 @@ export default function TournamentDetailPage() {
         {/* ── VIEW: prázdný stav ──────────────────────────────── */}
         {phases.length === 0 && !showAdmin && (
           <div className="text-center py-20">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 mb-5">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-panel border border-divider mb-5 shadow-sm">
               <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <rect x="2" y="6" width="24" height="16" rx="3" stroke="#4b5563" strokeWidth="2"/>
-                <line x1="2" y1="12" x2="26" y2="12" stroke="#4b5563" strokeWidth="1.5"/>
-                <line x1="9" y1="12" x2="9" y2="22" stroke="#4b5563" strokeWidth="1.5"/>
+                <rect x="2" y="6" width="24" height="16" rx="3" stroke="#D4AF37" strokeWidth="2"/>
+                <line x1="2" y1="12" x2="26" y2="12" stroke="#D4AF37" strokeWidth="1.5"/>
+                <line x1="9" y1="12" x2="9" y2="22" stroke="#D4AF37" strokeWidth="1.5"/>
               </svg>
             </div>
-            <p className="text-white font-bold text-lg">Žádné fáze ani skupiny</p>
-            <p className="text-gray-500 text-sm mt-1.5 max-w-xs mx-auto">
-              Otevři <span className="text-gray-300">Správu</span>, vytvoř fázi a skupiny, přiřaď týmy a vygeneruj zápasy.
+            <p className="text-ink font-bold text-lg">Žádné fáze ani skupiny</p>
+            <p className="text-secondary text-sm mt-1.5 max-w-xs mx-auto">
+              {isAdmin
+                ? <>Klikni na <span className="text-ink font-medium">Správa</span>, vytvoř fázi a skupiny, přiřaď týmy a vygeneruj zápasy.</>
+                : 'Turnaj bude brzy nastaven administrátorem.'}
             </p>
           </div>
         )}
@@ -522,19 +524,21 @@ export default function TournamentDetailPage() {
         {phases.length > 0 && (
           <>
             {/* Phase tabs */}
-            <div className="flex gap-0 border-b border-gray-800 mb-6 overflow-x-auto">
+            <div className="flex gap-0 border-b border-divider mb-6 overflow-x-auto">
               {phases.map(phase => (
                 <button
                   key={phase.id}
                   onClick={() => setSelectedPhaseId(phase.id)}
-                  className={`px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                  className={`px-4 py-2.5 text-sm font-semibold border-b-2 whitespace-nowrap transition-all ${
                     selectedPhaseId === phase.id
-                      ? 'border-green-500 text-green-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-300'
+                      ? 'border-gold text-gold-dark'
+                      : 'border-transparent text-muted hover:text-secondary hover:border-divider'
                   }`}
                 >
                   {phase.name}
-                  <span className="ml-1.5 text-xs opacity-60">
+                  <span className={`ml-1.5 text-xs font-normal ${
+                    selectedPhaseId === phase.id ? 'text-gold-dark/70' : 'text-muted'
+                  }`}>
                     ({groupsForPhase(phase.id).length})
                   </span>
                 </button>
@@ -545,8 +549,9 @@ export default function TournamentDetailPage() {
             {selectedPhase && (
               <>
                 {groupsForPhase(selectedPhase.id).length === 0 ? (
-                  <div className="text-center py-12 text-gray-500 text-sm">
-                    V této fázi nejsou žádné skupiny. Přidej je v sekci <span className="text-gray-300">Správa</span>.
+                  <div className="text-center py-12 text-secondary text-sm">
+                    V této fázi nejsou žádné skupiny.{' '}
+                    {isAdmin && <span className="text-ink font-medium">Přidej je v sekci Správa.</span>}
                   </div>
                 ) : (
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -575,10 +580,24 @@ export default function TournamentDetailPage() {
   );
 }
 
+// ── Ikony ─────────────────────────────────────────────────────
+
 function BackIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
       <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function GearIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="2.5" stroke={active ? '#111111' : 'currentColor'} strokeWidth="1.5"/>
+      <path
+        d="M7 1v2M7 11v2M1 7h2M11 7h2M2.9 2.9l1.4 1.4M9.7 9.7l1.4 1.4M2.9 11.1l1.4-1.4M9.7 4.3l1.4-1.4"
+        stroke={active ? '#111111' : 'currentColor'} strokeWidth="1.5" strokeLinecap="round"
+      />
     </svg>
   );
 }

@@ -1,16 +1,24 @@
 @import "tailwindcss";
 
-:root {
-  --background: #030712;
-  --foreground: #f9fafb;
-  --surface: #111827;
-  --border: #1f2937;
-  --accent: #22c55e;
+/* ── Custom color tokens ──────────────────────────────────────── */
+@theme inline {
+  --color-gold:        #D4AF37;
+  --color-gold-dark:   #B68C1F;
+  --color-gold-light:  #FBF5DC;
+  --color-gold-border: #E8D06B;
+  --color-ink:         #111111;
+  --color-ink-light:   #333333;
+  --color-canvas:      #F7F5F0;
+  --color-panel:       #FFFFFF;
+  --color-divider:     #E5E5E5;
+  --color-secondary:   #555555;
+  --color-muted:       #888888;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+/* ── Base ─────────────────────────────────────────────────────── */
+:root {
+  --background: #F7F5F0;
+  --foreground: #111111;
 }
 
 body {
@@ -22,11 +30,28 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ── Date input styling (light theme) ────────────────────────── */
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) opacity(0.4);
+  filter: opacity(0.5);
   cursor: pointer;
 }
 
 input[type="date"]::-webkit-datetime-edit {
-  color: #f9fafb;
+  color: #111111;
+}
+
+/* ── Scrollbar (subtle) ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F5F0;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4AF37;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B68C1F;
 }

@@ -31,84 +31,112 @@ export function MatchList({ matches, teams, onResultSubmit }: Props) {
     setEditingId(null);
   };
 
+  const winner = (match: Match): 'home' | 'away' | 'draw' | null => {
+    if (!match.played || match.homeScore === null || match.awayScore === null) return null;
+    if (match.homeScore > match.awayScore) return 'home';
+    if (match.awayScore > match.homeScore) return 'away';
+    return 'draw';
+  };
+
   if (matches.length === 0) {
-    return <p className="text-sm text-gray-500">Žádné zápasy.</p>;
+    return <p className="text-sm text-secondary">Žádné zápasy.</p>;
   }
 
   return (
     <div className="space-y-6">
       {rounds.map(round => (
         <div key={round}>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">
+          <h3 className="text-xs font-semibold text-secondary uppercase tracking-widest mb-2">
             Kolo {round}
           </h3>
           <div className="space-y-2">
-            {matches.filter(m => m.round === round).map(match => (
-              <div
-                key={match.id}
-                className="flex items-center gap-2 px-4 py-3 bg-gray-900 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors"
-              >
-                <span className="flex-1 text-right text-sm font-medium text-white truncate">
-                  {teamName(match.homeTeamId)}
-                </span>
+            {matches.filter(m => m.round === round).map(match => {
+              const w = winner(match);
+              return (
+                <div
+                  key={match.id}
+                  className="flex items-center gap-2 px-4 py-3 bg-panel rounded-xl border border-divider hover:border-gold-border transition-colors shadow-sm"
+                >
+                  {/* Domácí */}
+                  <span className={`flex-1 text-right text-sm font-medium truncate ${
+                    w === 'home' ? 'text-ink font-semibold' : 'text-secondary'
+                  }`}>
+                    {teamName(match.homeTeamId)}
+                  </span>
 
-                <div className="w-36 flex-shrink-0 flex justify-center">
-                  {editingId === match.id ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        autoFocus
-                        value={homeInput}
-                        onChange={e => setHomeInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && submitResult(match.id)}
-                        className="w-10 text-center bg-gray-800 border border-gray-700 rounded px-1 py-0.5 text-sm text-white focus:outline-none focus:border-green-500"
-                        placeholder="0"
-                        inputMode="numeric"
-                      />
-                      <span className="text-gray-500">:</span>
-                      <input
-                        value={awayInput}
-                        onChange={e => setAwayInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && submitResult(match.id)}
-                        className="w-10 text-center bg-gray-800 border border-gray-700 rounded px-1 py-0.5 text-sm text-white focus:outline-none focus:border-green-500"
-                        placeholder="0"
-                        inputMode="numeric"
-                      />
+                  <div className="w-36 flex-shrink-0 flex justify-center">
+                    {editingId === match.id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          autoFocus
+                          value={homeInput}
+                          onChange={e => setHomeInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && submitResult(match.id)}
+                          className="w-10 text-center bg-canvas border border-divider rounded-lg px-1 py-0.5 text-sm text-ink focus:outline-none focus:border-gold"
+                          placeholder="0"
+                          inputMode="numeric"
+                        />
+                        <span className="text-muted">:</span>
+                        <input
+                          value={awayInput}
+                          onChange={e => setAwayInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && submitResult(match.id)}
+                          className="w-10 text-center bg-canvas border border-divider rounded-lg px-1 py-0.5 text-sm text-ink focus:outline-none focus:border-gold"
+                          placeholder="0"
+                          inputMode="numeric"
+                        />
+                        <button
+                          onClick={() => submitResult(match.id)}
+                          className="bg-gold hover:bg-gold-dark text-ink text-xs px-2 py-1 rounded-lg font-semibold transition-colors"
+                        >
+                          OK
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="text-muted hover:text-secondary text-xs px-1 transition-colors"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : match.played ? (
                       <button
-                        onClick={() => submitResult(match.id)}
-                        className="bg-green-600 hover:bg-green-500 text-white text-xs px-2 py-1 rounded transition-colors"
+                        onClick={() => startEdit(match)}
+                        title="Klikni pro úpravu"
+                        className="flex items-center gap-1 hover:opacity-80 transition-opacity"
                       >
-                        OK
+                        {/* Domácí skóre */}
+                        <span className={`text-sm font-bold tabular-nums px-1.5 py-0.5 rounded-md ${
+                          w === 'home' ? 'bg-gold text-ink' : 'bg-[#F2F2F2] text-secondary'
+                        }`}>
+                          {match.homeScore}
+                        </span>
+                        <span className="text-muted text-xs">:</span>
+                        {/* Hostující skóre */}
+                        <span className={`text-sm font-bold tabular-nums px-1.5 py-0.5 rounded-md ${
+                          w === 'away' ? 'bg-gold text-ink' : 'bg-[#F2F2F2] text-secondary'
+                        }`}>
+                          {match.awayScore}
+                        </span>
                       </button>
+                    ) : (
                       <button
-                        onClick={() => setEditingId(null)}
-                        className="text-gray-500 hover:text-gray-300 text-xs px-1 transition-colors"
+                        onClick={() => startEdit(match)}
+                        className="text-xs text-muted border border-dashed border-divider rounded-lg px-3 py-1 hover:border-gold hover:text-gold-dark transition-colors"
                       >
-                        ×
+                        Zadat výsledek
                       </button>
-                    </div>
-                  ) : match.played ? (
-                    <button
-                      onClick={() => startEdit(match)}
-                      className="text-lg font-bold tabular-nums text-white hover:text-green-400 transition-colors"
-                      title="Klikni pro úpravu"
-                    >
-                      {match.homeScore} : {match.awayScore}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => startEdit(match)}
-                      className="text-xs text-gray-500 border border-dashed border-gray-700 rounded px-3 py-1 hover:border-green-600 hover:text-green-400 transition-colors"
-                    >
-                      Zadat výsledek
-                    </button>
-                  )}
+                    )}
+                  </div>
+
+                  {/* Hosté */}
+                  <span className={`flex-1 text-left text-sm font-medium truncate ${
+                    w === 'away' ? 'text-ink font-semibold' : 'text-secondary'
+                  }`}>
+                    {teamName(match.awayTeamId)}
+                  </span>
                 </div>
-
-                <span className="flex-1 text-left text-sm font-medium text-white truncate">
-                  {teamName(match.awayTeamId)}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}
